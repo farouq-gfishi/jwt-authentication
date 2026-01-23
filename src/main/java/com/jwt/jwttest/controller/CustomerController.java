@@ -5,10 +5,7 @@ import com.jwt.jwttest.entity.Customer;
 import com.jwt.jwttest.model.LoginRequest;
 import com.jwt.jwttest.model.LoginResponse;
 import com.jwt.jwttest.repository.CustomerRepository;
-import com.jwt.jwttest.util.JWTUtil;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import com.jwt.jwttest.service.JWTService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,7 +19,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,13 +30,16 @@ public class CustomerController {
     private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final JWTService jwtService;
 
     public CustomerController(CustomerRepository customerRepository,
                               PasswordEncoder passwordEncoder,
-                              AuthenticationManager authenticationManager) {
+                              AuthenticationManager authenticationManager,
+                              JWTService jwtService) {
         this.customerRepository = customerRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/register")
@@ -60,20 +59,15 @@ public class CustomerController {
                 new UsernamePasswordAuthenticationToken(loginRequest.username(), loginRequest.password())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String accessToken = JWTUtil.generateAccessToken(authentication);
-        String refreshToken = JWTUtil.generateRefreshToken(authentication);
+        String accessToken = jwtService.generateAccessToken(authentication);
+        String refreshToken = jwtService.generateRefreshToken(authentication);
         return new LoginResponse(accessToken, refreshToken);
     }
 
     @PostMapping("/refreshToken")
     public LoginResponse refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
-        Claims claims = Jwts.parser()
-                .verifyWith(Keys.hmacShaKeyFor(JWTUtil.SECRET.getBytes(StandardCharsets.UTF_8)))
-                .build()
-                .parseSignedClaims(refreshToken)
-                .getPayload();
-        String username = claims.getSubject();
+        String username = jwtService.validateRefreshTokenAndGetUsername(refreshToken);
         Customer customer = customerRepository.findByEmail(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         List<GrantedAuthority> authorities = customer.getAuthorities()
@@ -81,8 +75,9 @@ public class CustomerController {
                 .map(a -> new SimpleGrantedAuthority(a.getName()))
                 .collect(Collectors.toList());
         Authentication auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
-        String newAccessToken = JWTUtil.generateAccessToken(auth);
-        String newRefreshToken = JWTUtil.generateRefreshToken(auth);
+        String newAccessToken = jwtService.generateAccessToken(auth);
+        String newRefreshToken = jwtService.generateRefreshToken(auth);
+
         return new LoginResponse(newAccessToken, newRefreshToken);
     }
 

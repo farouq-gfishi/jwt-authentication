@@ -34,6 +34,12 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private final JWTTokenValidatorFilter jwtTokenValidatorFilter;
+
+    public SecurityConfig(JWTTokenValidatorFilter jwtTokenValidatorFilter) {
+        this.jwtTokenValidatorFilter = jwtTokenValidatorFilter;
+    }
+
     @Bean
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) {
         http.sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(STATELESS))
@@ -48,7 +54,7 @@ public class SecurityConfig {
                     return config;
                 }))
                 .csrf(AbstractHttpConfigurer::disable)
-                .addFilterBefore(new JWTTokenValidatorFilter(), ExceptionTranslationFilter.class)
+                .addFilterBefore(jwtTokenValidatorFilter, ExceptionTranslationFilter.class)
 //                .redirectToHttps(withDefaults())
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/error", "/register", "/invalid-session", "/getToken", "/notSecure", "/refreshToken").permitAll()
