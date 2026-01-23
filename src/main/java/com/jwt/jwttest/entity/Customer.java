@@ -25,6 +25,8 @@ public class Customer {
     private String lastName;
     private String email;
     private String password;
+    private String phoneNumber;
+    private Boolean verified;
 
     @CreatedDate
     @Column(updatable = false)

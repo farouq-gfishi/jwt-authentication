@@ -1,12 +1,12 @@
 package com.jwt.jwttest.service;
 
+import com.jwt.jwttest.model.CustomerUserDetails;
 import lombok.NonNull;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Objects;
@@ -16,15 +16,21 @@ public record CustomerUsernamePasswordAuthenticationProvider(CustomerDetailsServ
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        String username = authentication.getName();
+        String phoneNumber = authentication.getName();
         String password = Objects.requireNonNull(authentication.getCredentials()).toString();
-        UserDetails userDetails = customerDetailsService.loadUserByUsername(username);
-        if (passwordEncoder.matches(password, userDetails.getPassword())) {
-            // do any custom logic for authentication
-            // like if age > 18 only authorize the user
-            return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        CustomerUserDetails userDetails =
+                (CustomerUserDetails) customerDetailsService.loadUserByUsername(phoneNumber);
+        if (!userDetails.isVerified()) {
+            throw new BadCredentialsException("Account is not verified");
         }
-        throw new BadCredentialsException("Invalid username or password");
+        if (!passwordEncoder.matches(password, userDetails.getPassword())) {
+            throw new BadCredentialsException("Invalid phone number or password");
+        }
+        return new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
     }
 
     @Override

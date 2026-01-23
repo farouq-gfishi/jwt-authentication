@@ -1,4 +1,4 @@
 package com.jwt.jwttest.model;
 
-public record LoginRequest(String username, String password) {
+public record LoginRequest(String phoneNumber, String password) {
 }

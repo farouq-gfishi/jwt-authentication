@@ -4,8 +4,11 @@ import com.jwt.jwttest.entity.Authority;
 import com.jwt.jwttest.entity.Customer;
 import com.jwt.jwttest.model.LoginRequest;
 import com.jwt.jwttest.model.LoginResponse;
+import com.jwt.jwttest.model.OTPRequest;
 import com.jwt.jwttest.repository.CustomerRepository;
 import com.jwt.jwttest.service.JWTService;
+import com.jwt.jwttest.service.OTPService;
+import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,18 +34,22 @@ public class CustomerController {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
+    private final OTPService otpService;
 
     public CustomerController(CustomerRepository customerRepository,
                               PasswordEncoder passwordEncoder,
                               AuthenticationManager authenticationManager,
-                              JWTService jwtService) {
+                              JWTService jwtService,
+                              OTPService otpService) {
         this.customerRepository = customerRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.otpService = otpService;
     }
 
     @PostMapping("/register")
+    @Transactional
     public ResponseEntity<String> registerUser(@RequestBody Customer customer) {
         customer.setPassword(passwordEncoder.encode(customer.getPassword()));
         Authority authority = new Authority();
@@ -50,13 +57,14 @@ public class CustomerController {
         authority.setCustomer(customer);
         customer.setAuthorities(Set.of(authority));
         customerRepository.save(customer);
+        otpService.sendOTP(customer.getPhoneNumber());
         return ResponseEntity.status(HttpStatus.CREATED).body("created successfully");
     }
 
-    @PostMapping("/getToken")
-    public LoginResponse getToken(@RequestBody LoginRequest loginRequest) {
+    @PostMapping("/login")
+    public LoginResponse login(@RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.username(), loginRequest.password())
+                new UsernamePasswordAuthenticationToken(loginRequest.phoneNumber(), loginRequest.password())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String accessToken = jwtService.generateAccessToken(authentication);
@@ -64,11 +72,11 @@ public class CustomerController {
         return new LoginResponse(accessToken, refreshToken);
     }
 
-    @PostMapping("/refreshToken")
+    @PostMapping("/refresh-token")
     public LoginResponse refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
         String username = jwtService.validateRefreshTokenAndGetUsername(refreshToken);
-        Customer customer = customerRepository.findByEmail(username)
+        Customer customer = customerRepository.findByPhoneNumber(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         List<GrantedAuthority> authorities = customer.getAuthorities()
                 .stream()
@@ -81,4 +89,12 @@ public class CustomerController {
         return new LoginResponse(newAccessToken, newRefreshToken);
     }
 
+    @PostMapping("/verify-otp")
+    public ResponseEntity<String> verifyOTP(@RequestBody OTPRequest otpRequest) {
+        otpService.verifyOTP(otpRequest);
+        Customer customer = customerRepository.findByPhoneNumber(otpRequest.phoneNumber()).get();
+        customer.setVerified(true);
+        customerRepository.save(customer);
+        return ResponseEntity.ok("user verified successfully");
+    }
 }
