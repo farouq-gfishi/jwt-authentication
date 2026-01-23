@@ -28,6 +28,7 @@ public class Customer {
     private String phoneNumber;
     private Boolean verified = false;
     private Boolean enabled = true;
+    private Integer tokenVersion = 0;
 
     @CreatedDate
     @Column(updatable = false)

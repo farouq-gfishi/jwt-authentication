@@ -26,6 +26,7 @@ public record CustomerDetailsService(CustomerRepository userRepository) implemen
                 customer.getPassword(),
                 Boolean.TRUE.equals(customer.getEnabled()),
                 Boolean.TRUE.equals(customer.getVerified()),
+                customer.getTokenVersion(),
                 authorities
         );
     }

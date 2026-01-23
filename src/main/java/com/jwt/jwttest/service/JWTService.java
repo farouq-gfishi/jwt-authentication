@@ -1,10 +1,12 @@
 package com.jwt.jwttest.service;
 
+import com.jwt.jwttest.model.CustomerUserDetails;
 import com.jwt.jwttest.properties.JWTProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -29,7 +31,7 @@ public class JWTService {
         return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Authentication auth) {
+    public String generateAccessToken(Authentication auth, Integer tokenVersion) {
         String authorities = auth.getAuthorities()
                 .stream()
                 .map(GrantedAuthority::getAuthority)
@@ -38,6 +40,7 @@ public class JWTService {
                 .subject("Test Application")
                 .claim(USERNAME, auth.getName())
                 .claim(TOKEN_TYPE, "ACCESS")
+                .claim("tv", tokenVersion)
                 .claim(AUTHORITIES, authorities)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessTokenExpiration()))
@@ -45,11 +48,43 @@ public class JWTService {
                 .compact();
     }
 
-    public String generateRefreshToken(Authentication auth) {
+    public String generateAccessToken(Authentication auth) {
+        String authorities = auth.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
+        CustomerUserDetails user = (CustomerUserDetails) auth.getPrincipal();
+        return Jwts.builder()
+                .subject("Test Application")
+                .claim(USERNAME, auth.getName())
+                .claim(TOKEN_TYPE, "ACCESS")
+                .claim("tv", user.getTokenVersion())
+                .claim(AUTHORITIES, authorities)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessTokenExpiration()))
+                .signWith(getSecretKey(), HS256)
+                .compact();
+    }
+
+    public String generateRefreshToken(Authentication auth, Integer tokenVersion) {
         return Jwts.builder()
                 .subject("Test Application")
                 .claim(USERNAME, auth.getName())
                 .claim(TOKEN_TYPE, "REFRESH")
+                .claim("tv", tokenVersion)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenExpiration()))
+                .signWith(getSecretKey(), HS256)
+                .compact();
+    }
+
+    public String generateRefreshToken(Authentication auth) {
+        CustomerUserDetails user = (CustomerUserDetails) auth.getPrincipal();
+        return Jwts.builder()
+                .subject("Test Application")
+                .claim(USERNAME, auth.getName())
+                .claim(TOKEN_TYPE, "REFRESH")
+                .claim("tv", user.getTokenVersion())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenExpiration()))
                 .signWith(getSecretKey(), HS256)
@@ -81,13 +116,15 @@ public class JWTService {
         }
     }
 
-    public String validateRefreshTokenAndGetUsername(String refreshToken) {
+    public Pair<String, Integer> validateRefreshTokenAndGetUsername(String refreshToken) {
         Claims claims = validateAndExtractClaims(refreshToken, "REFRESH");
         return extractUsername(claims);
     }
 
-    public String extractUsername(Claims claims) {
-        return claims.get(USERNAME, String.class);
+    public Pair<String, Integer> extractUsername(Claims claims) {
+        String username = claims.get(USERNAME, String.class);
+        Integer tokenVersionInToken = claims.get("tv", Integer.class);
+        return new Pair<>(username, tokenVersionInToken);
     }
 
     public Claims validateAccessToken(String accessToken) {

@@ -9,6 +9,7 @@ import com.jwt.jwttest.repository.CustomerRepository;
 import com.jwt.jwttest.service.JWTService;
 import com.jwt.jwttest.service.OTPService;
 import jakarta.transaction.Transactional;
+import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -76,19 +77,24 @@ public class CustomerController {
     @PostMapping("/refresh-token")
     public LoginResponse refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
-        String username = jwtService.validateRefreshTokenAndGetUsername(refreshToken);
+        Pair<String, Integer> pair = jwtService.validateRefreshTokenAndGetUsername(refreshToken);
+        String username = pair.a;
+        Integer tokenVersionInToken = pair.b;
         Customer customer = customerRepository.findByPhoneNumber(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         if (!customer.getEnabled()) {
             throw new BadCredentialsException("User is disabled");
+        }
+        if (!tokenVersionInToken.equals(customer.getTokenVersion())) {
+            throw new BadCredentialsException("Token revoked");
         }
         List<GrantedAuthority> authorities = customer.getAuthorities()
                 .stream()
                 .map(a -> new SimpleGrantedAuthority(a.getName()))
                 .collect(Collectors.toList());
         Authentication auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
-        String newAccessToken = jwtService.generateAccessToken(auth);
-        String newRefreshToken = jwtService.generateRefreshToken(auth);
+        String newAccessToken = jwtService.generateAccessToken(auth, tokenVersionInToken);
+        String newRefreshToken = jwtService.generateRefreshToken(auth, tokenVersionInToken);
 
         return new LoginResponse(newAccessToken, newRefreshToken);
     }
@@ -114,6 +120,7 @@ public class CustomerController {
         Customer customer = customerRepository.findByPhoneNumber(phoneNumber)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         customer.setEnabled(false);
+        customer.setTokenVersion(customer.getTokenVersion() + 1);
         customerRepository.save(customer);
         return ResponseEntity.ok("user disabled successfully");
     }

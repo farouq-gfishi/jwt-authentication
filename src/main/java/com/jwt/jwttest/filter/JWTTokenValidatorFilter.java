@@ -40,12 +40,16 @@ public class JWTTokenValidatorFilter extends OncePerRequestFilter {
             try {
                 String jwt = header.substring(7);
                 Claims claims = jwtService.validateAccessToken(jwt);
+                Integer tokenVersionInToken = claims.get("tv", Integer.class);
                 String phoneNumber = claims.get(USERNAME, String.class);
                 String authorities = claims.get(AUTHORITIES, String.class);
                 Customer customer = customerRepository.findByPhoneNumber(phoneNumber)
                         .orElseThrow(() -> new BadCredentialsException("User not found"));
                 if (!customer.getEnabled()) {
                     throw new BadCredentialsException("User is disabled");
+                }
+                if (!tokenVersionInToken.equals(customer.getTokenVersion())) {
+                    throw new BadCredentialsException("Token revoked");
                 }
                 Authentication authentication =
                         new UsernamePasswordAuthenticationToken(
