@@ -26,7 +26,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import java.util.Collections;
 import java.util.List;
 
-import static org.springframework.security.config.Customizer.withDefaults;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @Configuration
@@ -59,7 +58,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/error", "/register", "/invalid-session", "/getToken", "/notSecure", "/refreshToken").permitAll()
                         .anyRequest().authenticated());
-        http.formLogin(withDefaults());
         http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
         http.exceptionHandling(ex -> ex.accessDeniedHandler(new CustomAccessDeniedHandler()));
         return http.build();

@@ -22,7 +22,7 @@ public record CustomerUsernamePasswordAuthenticationProvider(CustomerDetailsServ
         if (passwordEncoder.matches(password, userDetails.getPassword())) {
             // do any custom logic for authentication
             // like if age > 18 only authorize the user
-            return new UsernamePasswordAuthenticationToken(userDetails, password, userDetails.getAuthorities());
+            return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         }
         throw new BadCredentialsException("Invalid username or password");
     }
