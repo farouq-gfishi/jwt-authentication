@@ -24,6 +24,7 @@ public record CustomerDetailsService(CustomerRepository userRepository) implemen
         return new CustomerUserDetails(
                 customer.getPhoneNumber(),
                 customer.getPassword(),
+                Boolean.TRUE.equals(customer.getEnabled()),
                 Boolean.TRUE.equals(customer.getVerified()),
                 authorities
         );

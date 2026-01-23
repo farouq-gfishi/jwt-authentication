@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -78,6 +79,9 @@ public class CustomerController {
         String username = jwtService.validateRefreshTokenAndGetUsername(refreshToken);
         Customer customer = customerRepository.findByPhoneNumber(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!customer.getEnabled()) {
+            throw new BadCredentialsException("User is disabled");
+        }
         List<GrantedAuthority> authorities = customer.getAuthorities()
                 .stream()
                 .map(a -> new SimpleGrantedAuthority(a.getName()))
@@ -96,5 +100,31 @@ public class CustomerController {
         customer.setVerified(true);
         customerRepository.save(customer);
         return ResponseEntity.ok("user verified successfully");
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<String> resendOTP(@RequestBody Map<String, String> request) {
+        otpService.sendOTP(request.get("phoneNumber"));
+        return ResponseEntity.ok("OTP sent successfully");
+    }
+
+    @PostMapping("/disable-user")
+    public ResponseEntity<String> disableUser(@RequestBody Map<String, String> request) {
+        String phoneNumber = request.get("phoneNumber");
+        Customer customer = customerRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        customer.setEnabled(false);
+        customerRepository.save(customer);
+        return ResponseEntity.ok("user disabled successfully");
+    }
+
+    @PostMapping("/enable-user")
+    public ResponseEntity<String> enableUser(@RequestBody Map<String, String> request) {
+        String phoneNumber = request.get("phoneNumber");
+        Customer customer = customerRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        customer.setEnabled(true);
+        customerRepository.save(customer);
+        return ResponseEntity.ok("user disabled successfully");
     }
 }

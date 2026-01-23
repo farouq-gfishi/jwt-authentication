@@ -1,5 +1,7 @@
 package com.jwt.jwttest.filter;
 
+import com.jwt.jwttest.entity.Customer;
+import com.jwt.jwttest.repository.CustomerRepository;
 import com.jwt.jwttest.service.JWTService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -20,9 +22,12 @@ import static com.jwt.jwttest.constant.ApplicationConstant.*;
 public class JWTTokenValidatorFilter extends OncePerRequestFilter {
 
     private final JWTService jwtService;
+    private final CustomerRepository customerRepository;
 
-    public JWTTokenValidatorFilter(JWTService jwtService) {
+    public JWTTokenValidatorFilter(JWTService jwtService,
+                                   CustomerRepository customerRepository) {
         this.jwtService = jwtService;
+        this.customerRepository = customerRepository;
     }
 
     @Override
@@ -30,17 +35,24 @@ public class JWTTokenValidatorFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader(JWT_HEADER);
+
         if (header != null && header.startsWith("Bearer ")) {
             try {
                 String jwt = header.substring(7);
                 Claims claims = jwtService.validateAccessToken(jwt);
-                String username = claims.get(USERNAME, String.class);
+                String phoneNumber = claims.get(USERNAME, String.class);
                 String authorities = claims.get(AUTHORITIES, String.class);
-                Authentication authentication = new UsernamePasswordAuthenticationToken(
-                        username,
-                        null,
-                        AuthorityUtils.commaSeparatedStringToAuthorityList(authorities)
-                );
+                Customer customer = customerRepository.findByPhoneNumber(phoneNumber)
+                        .orElseThrow(() -> new BadCredentialsException("User not found"));
+                if (!customer.getEnabled()) {
+                    throw new BadCredentialsException("User is disabled");
+                }
+                Authentication authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                phoneNumber,
+                                null,
+                                AuthorityUtils.commaSeparatedStringToAuthorityList(authorities)
+                        );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (BadCredentialsException ex) {
                 throw ex;

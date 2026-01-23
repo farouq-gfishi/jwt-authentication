@@ -20,6 +20,9 @@ public record CustomerUsernamePasswordAuthenticationProvider(CustomerDetailsServ
         String password = Objects.requireNonNull(authentication.getCredentials()).toString();
         CustomerUserDetails userDetails =
                 (CustomerUserDetails) customerDetailsService.loadUserByUsername(phoneNumber);
+        if (!userDetails.isEnabled()) {
+            throw new BadCredentialsException("User is disabled");
+        }
         if (!userDetails.isVerified()) {
             throw new BadCredentialsException("Account is not verified");
         }

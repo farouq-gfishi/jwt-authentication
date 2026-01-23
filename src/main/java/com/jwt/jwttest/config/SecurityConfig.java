@@ -56,7 +56,16 @@ public class SecurityConfig {
                 .addFilterBefore(jwtTokenValidatorFilter, ExceptionTranslationFilter.class)
 //                .redirectToHttps(withDefaults())
                 .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/error", "/register", "/invalid-session", "/login", "/notSecure", "/refresh-token", "/verify-otp").permitAll()
+                        .requestMatchers("/error",
+                                "/register",
+                                "/invalid-session",
+                                "/login",
+                                "/notSecure",
+                                "/refresh-token",
+                                "/verify-otp",
+                                "/resend-otp",
+                                "/disable-user",
+                                "/enable-user").permitAll()
                         .anyRequest().authenticated());
         http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
         http.exceptionHandling(ex -> ex.accessDeniedHandler(new CustomAccessDeniedHandler()));

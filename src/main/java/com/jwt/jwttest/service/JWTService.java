@@ -14,8 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.stream.Collectors;
 
-import static com.jwt.jwttest.constant.ApplicationConstant.AUTHORITIES;
-import static com.jwt.jwttest.constant.ApplicationConstant.TOKEN_TYPE;
+import static com.jwt.jwttest.constant.ApplicationConstant.*;
 import static io.jsonwebtoken.Jwts.SIG.HS256;
 
 public class JWTService {
@@ -35,11 +34,11 @@ public class JWTService {
                 .stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
-
         return Jwts.builder()
-                .subject(auth.getName())
-                .claim(AUTHORITIES, authorities)
+                .subject("Test Application")
+                .claim(USERNAME, auth.getName())
                 .claim(TOKEN_TYPE, "ACCESS")
+                .claim(AUTHORITIES, authorities)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessTokenExpiration()))
                 .signWith(getSecretKey(), HS256)
@@ -48,8 +47,9 @@ public class JWTService {
 
     public String generateRefreshToken(Authentication auth) {
         return Jwts.builder()
+                .subject("Test Application")
+                .claim(USERNAME, auth.getName())
                 .claim(TOKEN_TYPE, "REFRESH")
-                .subject(auth.getName())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenExpiration()))
                 .signWith(getSecretKey(), HS256)
@@ -87,7 +87,7 @@ public class JWTService {
     }
 
     public String extractUsername(Claims claims) {
-        return claims.getSubject();
+        return claims.get(USERNAME, String.class);
     }
 
     public Claims validateAccessToken(String accessToken) {

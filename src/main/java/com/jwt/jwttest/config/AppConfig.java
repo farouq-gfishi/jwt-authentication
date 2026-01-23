@@ -3,6 +3,7 @@ package com.jwt.jwttest.config;
 import com.jwt.jwttest.filter.JWTTokenValidatorFilter;
 import com.jwt.jwttest.properties.JWTProperties;
 import com.jwt.jwttest.properties.OTPProperties;
+import com.jwt.jwttest.repository.CustomerRepository;
 import com.jwt.jwttest.service.JWTService;
 import com.jwt.jwttest.service.OTPService;
 import org.springframework.context.annotation.Bean;
@@ -17,8 +18,9 @@ public class AppConfig {
     }
 
     @Bean
-    public JWTTokenValidatorFilter jwtTokenValidatorFilter(JWTService jwtService) {
-        return new JWTTokenValidatorFilter(jwtService);
+    public JWTTokenValidatorFilter jwtTokenValidatorFilter(JWTService jwtService,
+                                                           CustomerRepository customerRepository) {
+        return new JWTTokenValidatorFilter(jwtService, customerRepository);
     }
 
     @Bean

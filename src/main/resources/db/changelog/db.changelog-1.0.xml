@@ -16,10 +16,21 @@
             <column name="first_name" type="VARCHAR(255)"/>
             <column name="second_name" type="VARCHAR(255)"/>
             <column name="last_name" type="VARCHAR(255)"/>
-            <column name="email" type="VARCHAR(255)"/>
-            <column name="phone_number" type="VARCHAR(255)"/>
-            <column name="password" type="VARCHAR(255)"/>
-            <column name="verified" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="phone_number" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="password" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verified" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enabled" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
             <column name="created_at" type="TIMESTAMP"/>
             <column name="updated_at" type="TIMESTAMP"/>
         </createTable>
@@ -44,7 +55,6 @@
                 referencedTableName="customer"
                 referencedColumnNames="id"
                 constraintName="fk_authorities_customer"/>
-
     </changeSet>
 
 </databaseChangeLog>

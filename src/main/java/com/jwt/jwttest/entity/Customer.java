@@ -26,7 +26,8 @@ public class Customer {
     private String email;
     private String password;
     private String phoneNumber;
-    private Boolean verified;
+    private Boolean verified = false;
+    private Boolean enabled = true;
 
     @CreatedDate
     @Column(updatable = false)
