@@ -13,11 +13,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/customers")
-public class AdminCustomerController {
+public class AdminController {
 
     private final CustomerRepository customerRepository;
 
-    public AdminCustomerController(CustomerRepository customerRepository) {
+    public AdminController(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
     }
 
