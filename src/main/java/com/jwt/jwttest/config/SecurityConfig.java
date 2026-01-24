@@ -23,7 +23,6 @@ import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.authentication.password.HaveIBeenPwnedRestApiPasswordChecker;
 import org.springframework.web.cors.CorsConfiguration;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
@@ -33,6 +32,24 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final List<String> PUBLIC_ENDPOINTS = List.of(
+            "/error",
+            "/register",
+            "/invalid-session",
+            "/login",
+            "/notSecure",
+            "/refresh-token",
+            "/verify-otp",
+            "/resend-otp",
+            "/disable-user",
+            "/enable-user",
+            "/verify",
+            "/reset-password",
+            "/request-reset-password"
+    );
+
+    private static final List<String> ALLOWED_ORIGINS = List.of("http://localhost:4200");
+
     private final JWTTokenValidatorFilter jwtTokenValidatorFilter;
 
     public SecurityConfig(JWTTokenValidatorFilter jwtTokenValidatorFilter) {
@@ -40,38 +57,18 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) {
-        http.sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(STATELESS))
-                .cors(corsConfig -> corsConfig.configurationSource(request -> {
-                    CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(Collections.singletonList("http://localhost:4200"));
-                    config.setAllowedMethods(Collections.singletonList("*"));
-                    config.setAllowCredentials(true);
-                    config.setAllowedHeaders(Collections.singletonList("*"));
-                    config.setExposedHeaders(List.of("Authorization"));
-                    config.setMaxAge(3600L);
-                    return config;
-                }))
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+        http
+                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
+                .cors(cors -> cors.configurationSource(request -> corsConfiguration()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtTokenValidatorFilter, ExceptionTranslationFilter.class)
-//                .redirectToHttps(withDefaults())
-                .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/error",
-                                "/register",
-                                "/invalid-session",
-                                "/login",
-                                "/notSecure",
-                                "/refresh-token",
-                                "/verify-otp",
-                                "/resend-otp",
-                                "/disable-user",
-                                "/enable-user",
-                                "/verify",
-                                "/reset-password",
-                                "/request-reset-password").permitAll()
-                        .anyRequest().authenticated());
-        http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
-        http.exceptionHandling(ex -> ex.accessDeniedHandler(new CustomAccessDeniedHandler()));
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(PUBLIC_ENDPOINTS.toArray(String[]::new)).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .httpBasic(basic -> basic.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()))
+                .exceptionHandling(ex -> ex.accessDeniedHandler(new CustomAccessDeniedHandler()));
         return http.build();
     }
 
@@ -91,18 +88,31 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider(CustomerDetailsService customerDetailsService,
-                                                         PasswordEncoder passwordEncoder) {
-        return new CustomerUsernamePasswordAuthenticationProvider(customerDetailsService, passwordEncoder);
+    public AuthenticationProvider authenticationProvider(
+            CustomerDetailsService customerDetailsService,
+            PasswordEncoder passwordEncoder
+    ) {
+        return new CustomerUsernamePasswordAuthenticationProvider(
+                customerDetailsService,
+                passwordEncoder
+        );
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(CustomerDetailsService customerDetailsService,
-                                                       PasswordEncoder passwordEncoder) {
-        CustomerUsernamePasswordAuthenticationProvider authenticationProvider =
-                new CustomerUsernamePasswordAuthenticationProvider(customerDetailsService, passwordEncoder);
+    public AuthenticationManager authenticationManager(AuthenticationProvider authenticationProvider) {
         ProviderManager providerManager = new ProviderManager(authenticationProvider);
         providerManager.setEraseCredentialsAfterAuthentication(false);
         return providerManager;
+    }
+
+    private CorsConfiguration corsConfiguration() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(ALLOWED_ORIGINS);
+        config.setAllowedMethods(List.of("*"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setMaxAge(3600L);
+        return config;
     }
 }
