@@ -1,6 +1,8 @@
 package com.jwt.jwttest.exception.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.jwt.jwttest.domain.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,7 +16,13 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 public class CustomBasicAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+
+    public CustomBasicAuthenticationEntryPoint() {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
 
     @Override
     public void commence(HttpServletRequest request,
@@ -31,7 +39,6 @@ public class CustomBasicAuthenticationEntryPoint implements AuthenticationEntryP
         response.setHeader("jwt-test-error", "authentication failed");
         response.setStatus(UNAUTHORIZED.value());
         response.setContentType("application/json;charset=UTF-8");
-        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }

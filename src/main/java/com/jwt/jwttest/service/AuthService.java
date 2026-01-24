@@ -1,8 +1,8 @@
 package com.jwt.jwttest.service;
 
-import com.jwt.jwttest.domain.entity.Customer;
 import com.jwt.jwttest.domain.dto.request.LoginRequest;
 import com.jwt.jwttest.domain.dto.response.LoginResponse;
+import com.jwt.jwttest.domain.entity.Customer;
 import com.jwt.jwttest.security.service.JWTService;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 
 import static com.jwt.jwttest.constant.ApplicationConstant.USERNAME;
 
@@ -71,5 +72,14 @@ public class AuthService {
                 jwtService.generateAccessToken(auth, tokenVersion),
                 jwtService.generateRefreshToken(auth, tokenVersion)
         );
+    }
+
+    @Transactional
+    public void logout(String email) {
+        log.info("Logout requested");
+        Customer customer = customerService.findByEmail(email);
+        customerService.incrementTokenVersion(customer);
+        SecurityContextHolder.clearContext();
+        log.info("Logout successful for email: {}", email);
     }
 }
