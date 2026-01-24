@@ -1,5 +1,7 @@
 package com.jwt.jwttest.exception;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jwt.jwttest.model.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.access.AccessDeniedException;
@@ -11,17 +13,24 @@ import java.time.LocalDateTime;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Override
-    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException {
-        LocalDateTime currentDateTime = LocalDateTime.now();
-        String message = accessDeniedException.getMessage() != null ? accessDeniedException.getMessage() : "Authorization Failed";
-        String path = request.getRequestURI();
+    public void handle(HttpServletRequest request,
+                       HttpServletResponse response,
+                       AccessDeniedException accessDeniedException) throws IOException {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                FORBIDDEN.value(),
+                FORBIDDEN.getReasonPhrase(),
+                "You do not have permission to access this resource",
+                request.getRequestURI()
+        );
         response.setHeader("jwt-test-error", "authorization failed");
         response.setStatus(FORBIDDEN.value());
         response.setContentType("application/json;charset=UTF-8");
-        String jsonResponse =
-                String.format("{\"timestamp\": \"%s\", \"status\": \"%s\", \"error\": \"%s\", \"message\": \"%s\", \"path\": \"%s\"}",
-                        currentDateTime, FORBIDDEN.value(), FORBIDDEN.getReasonPhrase(), message, path);
-        response.getWriter().write(jsonResponse);
+        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }
