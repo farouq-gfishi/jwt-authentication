@@ -16,13 +16,13 @@ public record CustomerDetailsService(CustomerRepository userRepository) implemen
 
     @Override
     public @NonNull UserDetails loadUserByUsername(@NonNull String username) {
-        Customer customer = userRepository.findByPhoneNumber(username).orElseThrow(() -> new
+        Customer customer = userRepository.findByEmail(username).orElseThrow(() -> new
                 UsernameNotFoundException("User details not found for the user: " + username));
         Set<SimpleGrantedAuthority> authorities = customer.getAuthorities().stream()
                 .map(authority -> new SimpleGrantedAuthority(authority.getName()))
                 .collect(Collectors.toSet());
         return new CustomerUserDetails(
-                customer.getPhoneNumber(),
+                customer.getEmail(),
                 customer.getPassword(),
                 Boolean.TRUE.equals(customer.getEnabled()),
                 Boolean.TRUE.equals(customer.getVerified()),

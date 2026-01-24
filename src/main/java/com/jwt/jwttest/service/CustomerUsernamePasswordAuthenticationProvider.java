@@ -16,10 +16,10 @@ public record CustomerUsernamePasswordAuthenticationProvider(CustomerDetailsServ
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        String phoneNumber = authentication.getName();
+        String email = authentication.getName();
         String password = Objects.requireNonNull(authentication.getCredentials()).toString();
         CustomerUserDetails userDetails =
-                (CustomerUserDetails) customerDetailsService.loadUserByUsername(phoneNumber);
+                (CustomerUserDetails) customerDetailsService.loadUserByUsername(email);
         if (!userDetails.isEnabled()) {
             throw new BadCredentialsException("User is disabled");
         }
@@ -27,7 +27,7 @@ public record CustomerUsernamePasswordAuthenticationProvider(CustomerDetailsServ
             throw new BadCredentialsException("Account is not verified");
         }
         if (!passwordEncoder.matches(password, userDetails.getPassword())) {
-            throw new BadCredentialsException("Invalid phone number or password");
+            throw new BadCredentialsException("Invalid email or password");
         }
         return new UsernamePasswordAuthenticationToken(
                 userDetails,

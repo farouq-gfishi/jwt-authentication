@@ -67,7 +67,7 @@ public class CustomerController {
     @PostMapping("/login")
     public LoginResponse login(@RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.phoneNumber(), loginRequest.password())
+                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String accessToken = jwtService.generateAccessToken(authentication);
@@ -81,7 +81,7 @@ public class CustomerController {
         Pair<String, Integer> pair = jwtService.validateRefreshTokenAndGetUsername(refreshToken);
         String username = pair.a;
         Integer tokenVersionInToken = pair.b;
-        Customer customer = customerRepository.findByPhoneNumber(username)
+        Customer customer = customerRepository.findByEmail(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         if (!customer.getEnabled()) {
             throw new BadCredentialsException("User is disabled");
@@ -103,7 +103,7 @@ public class CustomerController {
     @PostMapping("/verify-otp")
     public ResponseEntity<String> verifyOTP(@RequestBody OTPRequest otpRequest) {
         otpService.verifyOTP(otpRequest);
-        Customer customer = customerRepository.findByPhoneNumber(otpRequest.phoneNumber()).get();
+        Customer customer = customerRepository.findByEmail(otpRequest.phoneNumber()).get();
         customer.setVerified(true);
         customerRepository.save(customer);
         return ResponseEntity.ok("user verified successfully");
@@ -117,8 +117,8 @@ public class CustomerController {
 
     @PostMapping("/disable-user")
     public ResponseEntity<String> disableUser(@RequestBody Map<String, String> request) {
-        String phoneNumber = request.get("phoneNumber");
-        Customer customer = customerRepository.findByPhoneNumber(phoneNumber)
+        String email = request.get("email");
+        Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         customer.setEnabled(false);
         customer.setTokenVersion(customer.getTokenVersion() + 1);
@@ -128,8 +128,8 @@ public class CustomerController {
 
     @PostMapping("/enable-user")
     public ResponseEntity<String> enableUser(@RequestBody Map<String, String> request) {
-        String phoneNumber = request.get("phoneNumber");
-        Customer customer = customerRepository.findByPhoneNumber(phoneNumber)
+        String email = request.get("email");
+        Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         customer.setEnabled(true);
         customerRepository.save(customer);
@@ -138,7 +138,7 @@ public class CustomerController {
 
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request) {
-        Customer customer = customerRepository.findByPhoneNumber(request.phoneNumber())
+        Customer customer = customerRepository.findByEmail(request.email())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         if (!passwordEncoder.matches(request.oldPassword(), customer.getPassword())) {
             return ResponseEntity.badRequest().body("old password is incorrect");
