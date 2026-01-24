@@ -1,6 +1,6 @@
 package com.jwt.jwttest.service;
 
-import com.jwt.jwttest.exception.EmailServiceException;
+import com.jwt.jwttest.exception.custom.EmailServiceException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

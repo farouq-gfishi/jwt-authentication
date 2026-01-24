@@ -1,9 +1,10 @@
 package com.jwt.jwttest.config;
 
-import com.jwt.jwttest.filter.JWTTokenValidatorFilter;
-import com.jwt.jwttest.properties.JWTProperties;
-import com.jwt.jwttest.properties.OTPProperties;
+import com.jwt.jwttest.security.filter.JWTTokenValidatorFilter;
+import com.jwt.jwttest.config.properties.JWTProperties;
+import com.jwt.jwttest.config.properties.OTPProperties;
 import com.jwt.jwttest.repository.CustomerRepository;
+import com.jwt.jwttest.security.service.JWTService;
 import com.jwt.jwttest.service.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

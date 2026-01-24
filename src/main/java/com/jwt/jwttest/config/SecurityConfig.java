@@ -1,11 +1,11 @@
 package com.jwt.jwttest.config;
 
-import com.jwt.jwttest.exception.CustomAccessDeniedHandler;
-import com.jwt.jwttest.exception.CustomBasicAuthenticationEntryPoint;
-import com.jwt.jwttest.filter.JWTTokenValidatorFilter;
+import com.jwt.jwttest.exception.handler.CustomAccessDeniedHandler;
+import com.jwt.jwttest.exception.handler.CustomBasicAuthenticationEntryPoint;
+import com.jwt.jwttest.security.filter.JWTTokenValidatorFilter;
 import com.jwt.jwttest.repository.CustomerRepository;
-import com.jwt.jwttest.service.CustomerDetailsService;
-import com.jwt.jwttest.service.CustomerUsernamePasswordAuthenticationProvider;
+import com.jwt.jwttest.security.service.CustomerDetailsService;
+import com.jwt.jwttest.security.provider.CustomerUsernamePasswordAuthenticationProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

@@ -1,7 +1,7 @@
 package com.jwt.jwttest.service;
 
-import com.jwt.jwttest.entity.Customer;
-import com.jwt.jwttest.exception.UserNotFoundException;
+import com.jwt.jwttest.domain.entity.Customer;
+import com.jwt.jwttest.exception.custom.UserNotFoundException;
 import com.jwt.jwttest.repository.CustomerRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;

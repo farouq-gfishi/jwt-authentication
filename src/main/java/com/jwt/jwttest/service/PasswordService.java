@@ -1,9 +1,10 @@
 package com.jwt.jwttest.service;
 
-import com.jwt.jwttest.entity.Customer;
-import com.jwt.jwttest.exception.InvalidPasswordException;
-import com.jwt.jwttest.exception.InvalidTokenException;
-import com.jwt.jwttest.model.ChangePasswordRequest;
+import com.jwt.jwttest.domain.entity.Customer;
+import com.jwt.jwttest.exception.custom.InvalidPasswordException;
+import com.jwt.jwttest.exception.custom.InvalidTokenException;
+import com.jwt.jwttest.domain.dto.request.ChangePasswordRequest;
+import com.jwt.jwttest.security.service.JWTService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;

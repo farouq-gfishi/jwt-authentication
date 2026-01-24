@@ -1,8 +1,8 @@
 package com.jwt.jwttest.service;
 
-import com.jwt.jwttest.exception.InvalidOTPException;
-import com.jwt.jwttest.model.OTPRequest;
-import com.jwt.jwttest.properties.OTPProperties;
+import com.jwt.jwttest.exception.custom.InvalidOTPException;
+import com.jwt.jwttest.domain.dto.request.OTPRequest;
+import com.jwt.jwttest.config.properties.OTPProperties;
 import com.twilio.Twilio;
 import com.twilio.rest.verify.v2.service.Verification;
 import com.twilio.rest.verify.v2.service.VerificationCheck;
