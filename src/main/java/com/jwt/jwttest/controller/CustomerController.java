@@ -60,7 +60,7 @@ public class CustomerController {
         authority.setCustomer(customer);
         customer.setAuthorities(Set.of(authority));
         customerRepository.save(customer);
-//        otpService.sendOTP(customer.getPhoneNumber());
+        otpService.sendOTP(customer.getPhoneNumber());
         return ResponseEntity.status(HttpStatus.CREATED).body("created successfully");
     }
 
