@@ -26,6 +26,7 @@ public class Customer {
     private String email;
     private String password;
     private String phoneNumber;
+    private String verificationToken;
     private Boolean verified = false;
     private Boolean enabled = true;
     private Integer tokenVersion = 0;

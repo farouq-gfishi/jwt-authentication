@@ -34,6 +34,7 @@
             <column name="token_version" type="INT" defaultValueNumeric="0">
                 <constraints nullable="false"/>
             </column>
+            <column name="verification_token" type="VARCHAR(255)"/>
             <column name="created_at" type="TIMESTAMP"/>
             <column name="updated_at" type="TIMESTAMP"/>
         </createTable>

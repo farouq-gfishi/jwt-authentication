@@ -65,7 +65,10 @@ public class SecurityConfig {
                                 "/verify-otp",
                                 "/resend-otp",
                                 "/disable-user",
-                                "/enable-user").permitAll()
+                                "/enable-user",
+                                "/verify",
+                                "/reset-password",
+                                "/request-reset-password").permitAll()
                         .anyRequest().authenticated());
         http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
         http.exceptionHandling(ex -> ex.accessDeniedHandler(new CustomAccessDeniedHandler()));

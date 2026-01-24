@@ -4,10 +4,13 @@ import com.jwt.jwttest.filter.JWTTokenValidatorFilter;
 import com.jwt.jwttest.properties.JWTProperties;
 import com.jwt.jwttest.properties.OTPProperties;
 import com.jwt.jwttest.repository.CustomerRepository;
+import com.jwt.jwttest.service.EmailService;
 import com.jwt.jwttest.service.JWTService;
 import com.jwt.jwttest.service.OTPService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.mail.javamail.JavaMailSender;
 
 @Configuration
 public class AppConfig {
@@ -26,5 +29,11 @@ public class AppConfig {
     @Bean
     public OTPService otpService(OTPProperties otpProperties) {
         return new OTPService(otpProperties);
+    }
+
+    @Bean
+    public EmailService emailService(JavaMailSender mailSender,
+                                     @Value("${spring.mail.username}") String from) {
+        return new EmailService(mailSender, from);
     }
 }

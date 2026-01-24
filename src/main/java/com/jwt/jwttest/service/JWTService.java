@@ -31,6 +31,15 @@ public class JWTService {
         return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
+    public String generateToken(String email) {
+        return Jwts.builder()
+                .subject(email)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessTokenExpiration()))
+                .signWith(getSecretKey(), HS256)
+                .compact();
+    }
+
     public String generateAccessToken(Authentication auth, Integer tokenVersion) {
         String authorities = auth.getAuthorities()
                 .stream()
@@ -129,5 +138,31 @@ public class JWTService {
 
     public Claims validateAccessToken(String accessToken) {
         return validateAndExtractClaims(accessToken, "ACCESS");
+    }
+
+    public boolean validateToken(String token) {
+        return !isTokenExpired(token);
+    }
+
+    public String extractEmail(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSecretKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.getSubject();
+    }
+
+    private boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
+    }
+
+    private Date extractExpiration(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSecretKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.getExpiration();
     }
 }
