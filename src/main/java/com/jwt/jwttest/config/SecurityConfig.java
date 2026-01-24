@@ -33,20 +33,26 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfig {
 
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
+            // === Auth ===
+            "/auth/login",
+            "/auth/refresh-token",
+
+            // === Registration & Verification ===
+            "/auth/register",
+            "/auth/verify-email",
+            "/auth/verify-otp",
+            "/auth/resend-otp",
+
+            // === Password Management ===
+            "/password/request-reset",
+            "/password/reset",
+
+            // === System / Errors ===
             "/error",
-            "/register",
             "/invalid-session",
-            "/login",
-            "/notSecure",
-            "/refresh-token",
-            "/verify-otp",
-            "/resend-otp",
-            "/disable-user",
-            "/enable-user",
-            "/verify",
-            "/reset-password",
-            "/request-reset-password"
+            "/notSecure"
     );
+
 
     private static final List<String> ALLOWED_ORIGINS = List.of("http://localhost:4200");
 
