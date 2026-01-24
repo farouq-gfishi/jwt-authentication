@@ -1,30 +1,37 @@
 package com.jwt.jwttest.service;
 
+import com.jwt.jwttest.exception.EmailServiceException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+@Slf4j
 public class EmailService {
 
     private final JavaMailSender mailSender;
     private final String from;
 
-    public EmailService(JavaMailSender mailSender, String from) {
+    public EmailService(JavaMailSender mailSender,
+                        @Value("${spring.mail.username}") String from) {
         this.mailSender = mailSender;
         this.from = from;
     }
 
     public void sendVerificationEmail(String email, String verificationToken) {
+        log.info("Sending verification email to: {}", email);
         String subject = "Email Verification";
-        String path = "/verify";
+        String path = "/auth/verify-email";
         String message = "Click the button below to verify your email address:";
         sendEmail(email, verificationToken, subject, path, message);
     }
 
     public void sendForgotPasswordEmail(String email, String resetToken) {
+        log.info("Sending password reset email to: {}", email);
         String subject = "Password Reset Request";
-        String path = "/reset-password";
+        String path = "/password/reset-password";
         String message = "Click the button below to reset your password:";
         sendEmail(email, resetToken, subject, path, message);
     }
@@ -55,8 +62,10 @@ public class EmailService {
             helper.setFrom(from);
             helper.setText(content, true);
             mailSender.send(mimeMessage);
+            log.info("Email sent successfully to: {}", email);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("Failed to send email to: {}", email, e);
+            throw new EmailServiceException("Failed to send email", e);
         }
     }
 }
