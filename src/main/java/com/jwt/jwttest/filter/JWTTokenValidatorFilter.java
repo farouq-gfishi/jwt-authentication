@@ -21,6 +21,8 @@ import static com.jwt.jwttest.constant.ApplicationConstant.*;
 
 public class JWTTokenValidatorFilter extends OncePerRequestFilter {
 
+    private static final String BEARER_PREFIX = "Bearer ";
+
     private final JWTService jwtService;
     private final CustomerRepository customerRepository;
 
@@ -33,31 +35,12 @@ public class JWTTokenValidatorFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
         String header = request.getHeader(JWT_HEADER);
-
-        if (header != null && header.startsWith("Bearer ")) {
+        if (isBearerToken(header)) {
             try {
-                String jwt = header.substring(7);
-                Claims claims = jwtService.validateAccessToken(jwt);
-                Integer tokenVersionInToken = claims.get("tv", Integer.class);
-                String email = claims.get(USERNAME, String.class);
-                String authorities = claims.get(AUTHORITIES, String.class);
-                Customer customer = customerRepository.findByEmail(email)
-                        .orElseThrow(() -> new BadCredentialsException("User not found"));
-                if (!customer.getEnabled()) {
-                    throw new BadCredentialsException("User is disabled");
-                }
-                if (!tokenVersionInToken.equals(customer.getTokenVersion())) {
-                    throw new BadCredentialsException("Token revoked");
-                }
-                Authentication authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                email,
-                                null,
-                                AuthorityUtils.commaSeparatedStringToAuthorityList(authorities)
-                        );
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                authenticate(header);
             } catch (BadCredentialsException ex) {
                 throw ex;
             } catch (Exception ex) {
@@ -65,5 +48,56 @@ public class JWTTokenValidatorFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isBearerToken(String header) {
+        return header != null && header.startsWith(BEARER_PREFIX);
+    }
+
+    private void authenticate(String header) {
+        String token = extractToken(header);
+        Claims claims = jwtService.validateAccessToken(token);
+        String email = getRequiredClaim(claims, USERNAME, String.class);
+        Integer tokenVersion = getRequiredClaim(claims, "tv", Integer.class);
+        String authorities = getRequiredClaim(claims, AUTHORITIES, String.class);
+        Customer customer = loadCustomer(email);
+        validateCustomer(customer, tokenVersion);
+        setSecurityContext(email, authorities);
+    }
+
+    private String extractToken(String header) {
+        return header.substring(BEARER_PREFIX.length());
+    }
+
+    private <T> T getRequiredClaim(Claims claims, String name, Class<T> type) {
+        T value = claims.get(name, type);
+        if (value == null) {
+            throw new BadCredentialsException("Missing claim: " + name);
+        }
+        return value;
+    }
+
+    private Customer loadCustomer(String email) {
+        return customerRepository.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+    }
+
+    private void validateCustomer(Customer customer, Integer tokenVersionInToken) {
+        if (!Boolean.TRUE.equals(customer.getEnabled())) {
+            throw new BadCredentialsException("User is disabled");
+        }
+        if (!tokenVersionInToken.equals(customer.getTokenVersion())) {
+            throw new BadCredentialsException("Token revoked");
+        }
+    }
+
+    private void setSecurityContext(String email, String authorities) {
+        Authentication authentication =
+                new UsernamePasswordAuthenticationToken(
+                        email,
+                        null,
+                        AuthorityUtils.commaSeparatedStringToAuthorityList(authorities)
+                );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

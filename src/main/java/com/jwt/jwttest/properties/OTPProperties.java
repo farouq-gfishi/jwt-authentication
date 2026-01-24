@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OTPProperties {
 
-
     @Value("${otp.account-sid}")
     private String accountSID;
 
