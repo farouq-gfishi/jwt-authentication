@@ -1,4 +1,3 @@
-// exception/GlobalExceptionHandler.java
 package com.jwt.jwttest.exception;
 
 import com.jwt.jwttest.domain.dto.response.ErrorResponse;
