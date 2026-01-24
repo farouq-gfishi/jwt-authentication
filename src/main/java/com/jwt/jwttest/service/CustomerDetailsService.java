@@ -12,14 +12,20 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public record CustomerDetailsService(CustomerRepository userRepository) implements UserDetailsService {
+public class CustomerDetailsService implements UserDetailsService {
+
+    private final CustomerRepository customerRepository;
+
+    public CustomerDetailsService(CustomerRepository customerRepository) {
+        this.customerRepository = customerRepository;
+    }
 
     @Override
-    public @NonNull UserDetails loadUserByUsername(@NonNull String username) {
-        Customer customer = userRepository.findByEmail(username).orElseThrow(() -> new
-                UsernameNotFoundException("User details not found for the user: " + username));
+    public @NonNull UserDetails loadUserByUsername(@NonNull String email) {
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
         Set<SimpleGrantedAuthority> authorities = customer.getAuthorities().stream()
-                .map(authority -> new SimpleGrantedAuthority(authority.getName()))
+                .map(auth -> new SimpleGrantedAuthority(auth.getName()))
                 .collect(Collectors.toSet());
         return new CustomerUserDetails(
                 customer.getEmail(),
