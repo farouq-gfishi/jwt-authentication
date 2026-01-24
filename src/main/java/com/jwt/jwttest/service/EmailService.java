@@ -55,9 +55,8 @@ public class EmailService {
             helper.setFrom(from);
             helper.setText(content, true);
             mailSender.send(mimeMessage);
-
         } catch (Exception e) {
-            System.err.println("Failed to send email: " + e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 }

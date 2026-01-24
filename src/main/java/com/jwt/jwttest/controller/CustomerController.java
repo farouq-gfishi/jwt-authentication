@@ -10,8 +10,8 @@ import com.jwt.jwttest.repository.CustomerRepository;
 import com.jwt.jwttest.service.EmailService;
 import com.jwt.jwttest.service.JWTService;
 import com.jwt.jwttest.service.OTPService;
+import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
-import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.jwt.jwttest.constant.ApplicationConstant.USERNAME;
 
 @RestController
 public class CustomerController {
@@ -62,7 +64,7 @@ public class CustomerController {
             if (user.get().getVerified()) {
                 return new ResponseEntity<>("User Already exist and Verified.", HttpStatus.BAD_REQUEST);
             }
-            String verificationToken = jwtService.generateToken(user.get().getEmail());
+            String verificationToken = jwtService.generateEmailToken(user.get().getEmail());
             user.get().setVerificationToken(verificationToken);
             customerRepository.save(user.get());
             emailService.sendVerificationEmail(user.get().getEmail(), verificationToken);
@@ -73,7 +75,7 @@ public class CustomerController {
         authority.setName("ROLE_USER");
         authority.setCustomer(customer);
         customer.setAuthorities(Set.of(authority));
-        String verificationToken =jwtService.generateToken(customer.getEmail());
+        String verificationToken =jwtService.generateEmailToken(customer.getEmail());
         customer.setVerificationToken(verificationToken);
         customerRepository.save(customer);
         emailService.sendVerificationEmail(customer.getEmail(), verificationToken);
@@ -88,7 +90,7 @@ public class CustomerController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Token Expired!");
         }
 
-        if (!jwtService.validateToken(token) || !user.get().getVerificationToken().equals(token)) {
+        if (jwtService.isTokenExpired(token) || !user.get().getVerificationToken().equals(token)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Token Expired!");
         }
         user.get().setVerificationToken(null);
@@ -112,9 +114,9 @@ public class CustomerController {
     @PostMapping("/refresh-token")
     public LoginResponse refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
-        Pair<String, Integer> pair = jwtService.validateRefreshTokenAndGetUsername(refreshToken);
-        String username = pair.a;
-        Integer tokenVersionInToken = pair.b;
+        Claims claims = jwtService.validateRefreshToken(refreshToken);
+        String username = claims.get(USERNAME, String.class);
+        Integer tokenVersionInToken = claims.get("tv", Integer.class);
         Customer customer = customerRepository.findByEmail(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         if (!customer.getEnabled()) {
@@ -188,7 +190,7 @@ public class CustomerController {
         String email = request.get("email");
         Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        String resetToken = jwtService.generateToken(customer.getEmail());
+        String resetToken = jwtService.generateEmailToken(customer.getEmail());
         customer.setVerificationToken(resetToken);
         customerRepository.save(customer);
         emailService.sendForgotPasswordEmail(customer.getEmail(), resetToken);
@@ -202,7 +204,7 @@ public class CustomerController {
         String email = jwtService.extractEmail(token);
         Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        if (!jwtService.validateToken(token) || !token.equals(customer.getVerificationToken())) {
+        if (jwtService.isTokenExpired(token) || !token.equals(customer.getVerificationToken())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid or expired token");
         }
         customer.setPassword(passwordEncoder.encode(newPassword));

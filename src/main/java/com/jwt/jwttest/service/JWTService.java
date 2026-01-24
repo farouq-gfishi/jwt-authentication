@@ -1,12 +1,12 @@
 package com.jwt.jwttest.service;
 
 import com.jwt.jwttest.model.CustomerUserDetails;
+import com.jwt.jwttest.model.TokenType;
 import com.jwt.jwttest.properties.JWTProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,9 +14,12 @@ import org.springframework.security.core.GrantedAuthority;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.jwt.jwttest.constant.ApplicationConstant.*;
+import static com.jwt.jwttest.model.TokenType.ACCESS;
+import static com.jwt.jwttest.model.TokenType.REFRESH;
 import static io.jsonwebtoken.Jwts.SIG.HS256;
 
 public class JWTService {
@@ -27,11 +30,23 @@ public class JWTService {
         this.jwtProperties = jwtProperties;
     }
 
-    private SecretKey getSecretKey() {
-        return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+    public String generateAccessToken(Authentication auth) {
+        return buildToken(auth, ACCESS, null, jwtProperties.getAccessTokenExpiration());
     }
 
-    public String generateToken(String email) {
+    public String generateAccessToken(Authentication auth, Integer tokenVersion) {
+        return buildToken(auth, ACCESS, tokenVersion, jwtProperties.getAccessTokenExpiration());
+    }
+
+    public String generateRefreshToken(Authentication auth) {
+        return buildToken(auth, REFRESH, null, jwtProperties.getRefreshTokenExpiration());
+    }
+
+    public String generateRefreshToken(Authentication auth, Integer tokenVersion) {
+        return buildToken(auth, REFRESH, tokenVersion, jwtProperties.getRefreshTokenExpiration());
+    }
+
+    public String generateEmailToken(String email) {
         return Jwts.builder()
                 .subject(email)
                 .issuedAt(new Date())
@@ -40,7 +55,38 @@ public class JWTService {
                 .compact();
     }
 
-    public String generateAccessToken(Authentication auth, Integer tokenVersion) {
+    public Claims validateAccessToken(String accessToken) {
+        return validateAndExtractClaims(accessToken, ACCESS);
+    }
+
+    public Claims validateRefreshToken(String refreshToken) {
+        return validateAndExtractClaims(refreshToken, REFRESH);
+    }
+
+    public Claims validateAndExtractClaims(String token, TokenType expectedTokenType) {
+        Claims claims = parseToken(token);
+        String tokenType = claims.get(TOKEN_TYPE, String.class);
+        if (!expectedTokenType.name().equals(tokenType)) {
+            throw new BadCredentialsException(
+                    String.format("Invalid token type. Expected %s but got %s",
+                            expectedTokenType.name(),
+                            tokenType != null ? tokenType : "null")
+            );
+        }
+        return claims;
+    }
+
+    public String extractEmail(String token) {
+        Claims claims = parseToken(token);
+        return claims.getSubject();
+    }
+
+    public boolean isTokenExpired(String token) {
+        Claims claims = parseToken(token);
+        return claims.getExpiration().before(new Date());
+    }
+
+    private String buildToken(Authentication auth, TokenType type, Integer tokenVersion, long expirationMillis) {
         String authorities = auth.getAuthorities()
                 .stream()
                 .map(GrantedAuthority::getAuthority)
@@ -48,121 +94,36 @@ public class JWTService {
         return Jwts.builder()
                 .subject("Test Application")
                 .claim(USERNAME, auth.getName())
-                .claim(TOKEN_TYPE, "ACCESS")
-                .claim("tv", tokenVersion)
+                .claim(TOKEN_TYPE, type.name())
+                .claim("tv", getTokenVersion(tokenVersion, auth))
                 .claim(AUTHORITIES, authorities)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessTokenExpiration()))
+                .expiration(new Date(System.currentTimeMillis() + expirationMillis))
                 .signWith(getSecretKey(), HS256)
                 .compact();
     }
 
-    public String generateAccessToken(Authentication auth) {
-        String authorities = auth.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(","));
+    private Integer getTokenVersion(Integer tokenVersion, Authentication auth) {
+        if(tokenVersion != null) return tokenVersion;
         CustomerUserDetails user = (CustomerUserDetails) auth.getPrincipal();
-        return Jwts.builder()
-                .subject("Test Application")
-                .claim(USERNAME, auth.getName())
-                .claim(TOKEN_TYPE, "ACCESS")
-                .claim("tv", user.getTokenVersion())
-                .claim(AUTHORITIES, authorities)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessTokenExpiration()))
-                .signWith(getSecretKey(), HS256)
-                .compact();
+        return Objects.requireNonNull(user).getTokenVersion();
     }
 
-    public String generateRefreshToken(Authentication auth, Integer tokenVersion) {
-        return Jwts.builder()
-                .subject("Test Application")
-                .claim(USERNAME, auth.getName())
-                .claim(TOKEN_TYPE, "REFRESH")
-                .claim("tv", tokenVersion)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenExpiration()))
-                .signWith(getSecretKey(), HS256)
-                .compact();
-    }
-
-    public String generateRefreshToken(Authentication auth) {
-        CustomerUserDetails user = (CustomerUserDetails) auth.getPrincipal();
-        return Jwts.builder()
-                .subject("Test Application")
-                .claim(USERNAME, auth.getName())
-                .claim(TOKEN_TYPE, "REFRESH")
-                .claim("tv", user.getTokenVersion())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenExpiration()))
-                .signWith(getSecretKey(), HS256)
-                .compact();
-    }
-
-    public Claims validateAndExtractClaims(String token, String expectedTokenType) {
+    private Claims parseToken(String token) {
         try {
-            Claims claims = Jwts.parser()
+            return Jwts.parser()
                     .verifyWith(getSecretKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            String tokenType = claims.get(TOKEN_TYPE, String.class);
-            if (!expectedTokenType.equals(tokenType)) {
-                throw new BadCredentialsException(
-                        String.format("Invalid token type. Expected %s but got %s",
-                                expectedTokenType,
-                                tokenType != null ? tokenType : "null")
-                );
-            }
-            return claims;
-        } catch (ExpiredJwtException ex) {
-            throw new BadCredentialsException("Token has expired", ex);
-        } catch (BadCredentialsException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            throw new BadCredentialsException("Invalid token", ex);
+        } catch (ExpiredJwtException e) {
+            throw new BadCredentialsException("Token has expired", e);
+        } catch (Exception e) {
+            throw new BadCredentialsException("Invalid token", e);
         }
     }
 
-    public Pair<String, Integer> validateRefreshTokenAndGetUsername(String refreshToken) {
-        Claims claims = validateAndExtractClaims(refreshToken, "REFRESH");
-        return extractUsername(claims);
-    }
-
-    public Pair<String, Integer> extractUsername(Claims claims) {
-        String username = claims.get(USERNAME, String.class);
-        Integer tokenVersionInToken = claims.get("tv", Integer.class);
-        return new Pair<>(username, tokenVersionInToken);
-    }
-
-    public Claims validateAccessToken(String accessToken) {
-        return validateAndExtractClaims(accessToken, "ACCESS");
-    }
-
-    public boolean validateToken(String token) {
-        return !isTokenExpired(token);
-    }
-
-    public String extractEmail(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSecretKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-        return claims.getSubject();
-    }
-
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    private Date extractExpiration(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSecretKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-        return claims.getExpiration();
+    private SecretKey getSecretKey() {
+        return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 }
