@@ -106,9 +106,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationProvider authenticationProvider) {
-        ProviderManager providerManager = new ProviderManager(authenticationProvider);
-        providerManager.setEraseCredentialsAfterAuthentication(false);
-        return providerManager;
+        return new ProviderManager(authenticationProvider);
     }
 
     private CorsConfiguration corsConfiguration() {
