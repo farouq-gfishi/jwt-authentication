@@ -104,7 +104,7 @@ public class JWTService {
     }
 
     private Integer getTokenVersion(Integer tokenVersion, Authentication auth) {
-        if(tokenVersion != null) return tokenVersion;
+        if (tokenVersion != null) return tokenVersion;
         CustomerUserDetails user = (CustomerUserDetails) auth.getPrincipal();
         return Objects.requireNonNull(user).getTokenVersion();
     }
