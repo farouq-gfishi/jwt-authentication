@@ -2,6 +2,7 @@ package com.jwt.jwttest.controller;
 
 import com.jwt.jwttest.entity.Authority;
 import com.jwt.jwttest.entity.Customer;
+import com.jwt.jwttest.model.ChangePasswordRequest;
 import com.jwt.jwttest.model.LoginRequest;
 import com.jwt.jwttest.model.LoginResponse;
 import com.jwt.jwttest.model.OTPRequest;
@@ -59,7 +60,7 @@ public class CustomerController {
         authority.setCustomer(customer);
         customer.setAuthorities(Set.of(authority));
         customerRepository.save(customer);
-        otpService.sendOTP(customer.getPhoneNumber());
+//        otpService.sendOTP(customer.getPhoneNumber());
         return ResponseEntity.status(HttpStatus.CREATED).body("created successfully");
     }
 
@@ -133,5 +134,18 @@ public class CustomerController {
         customer.setEnabled(true);
         customerRepository.save(customer);
         return ResponseEntity.ok("user disabled successfully");
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request) {
+        Customer customer = customerRepository.findByPhoneNumber(request.phoneNumber())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!passwordEncoder.matches(request.oldPassword(), customer.getPassword())) {
+            return ResponseEntity.badRequest().body("old password is incorrect");
+        }
+        customer.setPassword(passwordEncoder.encode(request.newPassword()));
+        customer.setTokenVersion(customer.getTokenVersion() + 1);
+        customerRepository.save(customer);
+        return ResponseEntity.ok("password changed successfully");
     }
 }
