@@ -9,23 +9,10 @@
         <relativePath/>
     </parent>
     <groupId>com.jwt</groupId>
-    <artifactId>jwttest</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>jwttest</name>
-    <description>Demo project for Spring Boot</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+    <artifactId>jwt-authentication</artifactId>
+    <version>0.0.1</version>
+    <name>jwt-authentication</name>
+    <description>jwt authentication service</description>
     <properties>
         <java.version>21</java.version>
     </properties>
@@ -144,4 +131,11 @@
         </plugins>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>Github JWT Authentication Maven Package</name>
+            <url>https://maven.pkg.github.com/farouq-gfishi/jwt-authentication</url>
+        </repository>
+    </distributionManagement>
 </project>
